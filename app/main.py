@@ -1,11 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app import crud, models, schemas, database
-from .auth import token
-from .auth.schemas import TokenData, UserCreate
-from .auth.crud import create_user, get_user
 from .database import SessionLocal, engine
-from .models import User
+from fastapi import FastAPI
+from app.routers import contact, auth
+from app.database import database
 
 
 app = FastAPI()
@@ -50,28 +49,10 @@ def delete_contact(contact_id: int, db: Session = Depends(get_db)):
     return db_contact
 
 
+app.include_router(contact.router, prefix="/contacts")
+app.include_router(auth.router, prefix="/auth")
 
 
-@app.post("/register/", response_model=schemas.User)
-def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_email(db, email=user.email)
-    if db_user:
-        raise HTTPException(status_code=400, detail="User already registered")
-    
-    return crud.create_user(db, user)
-
-@app.post("/token/", response_model=token.Token)
-def get_token(data: schemas.UserLogin, db: Session = Depends(get_db)):
-    user = crud.get_user_by_email(db, email=data.email)
-    if not user or not crud.verify_password(data.password, user.password):
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
-    
-    access_token = token.create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
-
-@app.get("/protected/")
-def protected_route(current_user: schemas.User = Depends(token.get_current_user)):
-    return {"message": "This route is protected."}
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 from .models import Contact
-from .schemas import ContactCreate, ContactUpdate
+from .schemas import ContactCreate, ContactUpdate, UserCreate
+
+from app.models import User
 
 def create_contact(db: Session, contact: ContactCreate):
     db_contact = Contact(**contact.dict())
@@ -32,3 +34,14 @@ def delete_contact(db: Session, contact_id: int):
         db.delete(contact)
         db.commit()
     return contact
+
+
+def get_user_by_email(db: Session, email: str):
+    return db.query(User).filter(User.email == email).first()
+
+def create_user(db: Session, user: UserCreate):  # Используйте UserCreate
+    db_user = User(**user.dict())
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
